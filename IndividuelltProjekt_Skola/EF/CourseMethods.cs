@@ -21,6 +21,8 @@ public class CourseMethods
                 }
 
                 Console.WriteLine();
+                Console.WriteLine("Tryck valfri tangent för att fortsätta...");
+                Console.ReadKey();
             }
         }
         catch (Exception e)

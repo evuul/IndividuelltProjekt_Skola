@@ -82,7 +82,7 @@ public class StudentMethods
 
                     // Visa information om eleven
                     Console.WriteLine(
-                        $"{student.FirstName} {student.LastName} | Ålder: {student.Age} | Personnummer: {student.SocialSecurityNumber}");
+                        $"{student.FirstName} {student.LastName} | Ålder: {student.Age} år | Personnummer: {student.SocialSecurityNumber}");
                 }
 
                 Console.WriteLine("\nTryck på valfri tangent för att återgå till menyn.");

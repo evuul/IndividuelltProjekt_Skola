@@ -144,3 +144,4 @@
 /Users/alexanderek/RiderProjects/IndividuelltProjekt_Skola/IndividuelltProjekt_Skola/obj/Debug/net9.0/IndividuelltProjekt_Skola.pdb
 /Users/alexanderek/RiderProjects/IndividuelltProjekt_Skola/IndividuelltProjekt_Skola/obj/Debug/net9.0/IndividuelltProjekt_Skola.genruntimeconfig.cache
 /Users/alexanderek/RiderProjects/IndividuelltProjekt_Skola/IndividuelltProjekt_Skola/obj/Debug/net9.0/ref/IndividuelltProjekt_Skola.dll
+/Users/alexanderek/RiderProjects/IndividuelltProjekt_Skola/IndividuelltProjekt_Skola/obj/Debug/net9.0/IndividuelltProjekt_Skola.sourcelink.json

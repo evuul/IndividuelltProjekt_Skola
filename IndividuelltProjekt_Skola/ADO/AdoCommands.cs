@@ -6,41 +6,9 @@ namespace IndividuelltProjekt_Skola.ADO;
 public class AdoCommands
 {
     private const string _connectionString =
-        "Server=localhost,1433;Database=IndividuelltProjekt_Alex;User ID=sa;Password=MyStrongPass123;TrustServerCertificate=True;";
+        "Server=localhost,1433;Database=IndividuelltProjekt_Skola;User ID=sa;Password=MyStrongPass123;TrustServerCertificate=True;";
 
-    public static List<(int Id, string ProfessionName)> ListProfessions()
-    {
-        List<(int Id, string ProfessionName)> professions = new List<(int, string)>();
-
-        string query = "SELECT ProfessionId, ProfessionName FROM Professions";
-
-        using (SqlConnection connection = new SqlConnection(_connectionString))
-        {
-            connection.Open();
-            using (SqlCommand command = new SqlCommand(query, connection))
-            {
-                try
-                {
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            int professionId = reader.GetInt32(0);
-                            string professionName = reader.GetString(1);
-
-                            professions.Add((professionId, professionName));
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Fel vid hämtning av yrken: {ex.Message}");
-                }
-            }
-        }
-
-        return professions;
-    }
+   
     
     public static void GetSalaryPerMonthPerDepartment()
     {
@@ -54,7 +22,7 @@ public class AdoCommands
         ORDER BY d.DepartmentName";
 
         Console.WriteLine("Löner per avdelning:");
-        ExecuteQuery(query, 30); // Här kan padding vara 30 för att passa din kolumnstorlek
+        ExecuteQuery(query, 30);
         Console.WriteLine("Tryck på valfri tangent för att fortsätta...");
         Console.ReadKey();
     }
@@ -79,17 +47,15 @@ public class AdoCommands
     public static void GetEmployeeOverview()
     {
         string query = @"
-                SELECT 
-                    e.FirstName + ' ' + e.LastName AS Lärare,
-                    p.ProfessionName AS Titel,
-                    d.DepartmentName AS Avdelning,
-                    DATEDIFF(YEAR, e.HireDate, GETDATE()) AS [År anställd]
-                FROM Employees e
-                JOIN Professions p ON e.ProfessionId = p.ProfessionId
-                LEFT JOIN Departments d ON e.DepartmentId = d.DepartmentId;";
+            SELECT 
+                e.FirstName + ' ' + e.LastName AS Lärare,
+                p.ProfessionName AS Anställning,
+                DATEDIFF(YEAR, e.HireDate, GETDATE()) AS [År som anställd]
+            FROM Employees e
+            JOIN Professions p ON e.ProfessionId = p.ProfessionId;";
 
         Console.WriteLine("Översikt av personal:");
-        ExecuteQuery(query, 27); // Antag att ExecuteQuery har padding som argument
+        ExecuteQuery(query, 27);
         Console.WriteLine("Tryck på valfri tangent för att fortsätta...");
         Console.ReadKey();
     }
@@ -112,10 +78,13 @@ public static void AddEmployee()
         // Be om anställningsdatum
         DateOnly employmentDate = GetDateInput("Ange den anställdes anställningsdatum (YYYY-MM-DD):");
 
-        // Bygg SQL-frågan för att lägga till den anställde
-        string query = @"INSERT INTO Employees (FirstName, LastName, ProfessionId, Salary, EmploymentDate)
-                         VALUES (@FirstName, @LastName, @ProfessionId, @Salary, @EmploymentDate)";
+        // Lägg till en prompt för att välja avdelning
+        List<(int Id, string DepartmentName)> departments = ListDepartments();
+        int departmentId = GetSelectionFromList(departments, "Vilken avdelning tillhör den anställde?");
 
+        // Bygg SQL-frågan för att lägga till den anställde
+        string query = @"INSERT INTO Employees (FirstName, LastName, ProfessionId, Salary, HireDate, DepartmentId)
+                 VALUES (@FirstName, @LastName, @ProfessionId, @Salary, @HireDate, @DepartmentId)";
         // Skapa parametrar för SQL-frågan
         SqlParameter[] parameters = new SqlParameter[]
         {
@@ -123,13 +92,16 @@ public static void AddEmployee()
             new SqlParameter("@LastName", SqlDbType.NVarChar) { Value = lastName },
             new SqlParameter("@ProfessionId", SqlDbType.Int) { Value = professionId },
             new SqlParameter("@Salary", SqlDbType.Int) { Value = salary },
-            new SqlParameter("@EmploymentDate", SqlDbType.Date) { Value = employmentDate }
+            new SqlParameter("@HireDate", SqlDbType.Date) { Value = employmentDate },
+            new SqlParameter("@DepartmentId", SqlDbType.Int) { Value = departmentId }
         };
 
         // Kör frågan för att lägga till den anställde
         ExecuteQuery(query, 20, parameters);
 
         Console.WriteLine("Den anställde har lagts till i systemet.");
+        Console.WriteLine("Tryck på valfri tangent för att fortsätta...");
+        Console.ReadKey();
     }
     catch (Exception ex)
     {
@@ -190,6 +162,189 @@ public static void GetGradesFromSpecificStudent()
     Console.ReadKey();
 }
 
+public static void GetStudentInfoById()
+{
+    // Hämta lista på alla elever
+    List<(int StudentId, string FirstName, string LastName, string ClassName)> students = ListStudents();
+    Console.WriteLine("Vilken elevs information vill du se?");
+
+    // Skriv ut alla elever för val
+    foreach (var student in students)
+    {
+        Console.WriteLine($"{student.StudentId}: {student.FirstName} {student.LastName} årskurs ({student.ClassName})");
+    }
+
+    Console.WriteLine("Ange elevens ID för att se information:");
+
+    // Hämta och validera input
+    if (!int.TryParse(Console.ReadLine(), out int studentId))
+    {
+        Console.WriteLine("Ogiltigt val. Vänligen ange ett heltal.");
+        return;
+    }
+
+    // Kontrollera om elev-ID:t finns i listan
+    if (!students.Any(s => s.StudentId == studentId))
+    {
+        Console.WriteLine("Ogiltigt elev-ID. Försök igen.");
+        return;
+    }
+
+    // SQL-fråga för att hämta elevinformation
+    string query = @"
+    SELECT 
+        s.FirstName + ' ' + s.LastName AS Elev,
+        s.Age AS Ålder,
+        s.SocialSecurityNumber AS Personnummer,
+        c.ClassName AS Klass
+    FROM Students s
+    INNER JOIN Classes c ON s.ClassId = c.ClassId
+    WHERE s.StudentId = @StudentId;";
+
+    // Skapa parameter för SQL-frågan
+    SqlParameter studentIdParam = new SqlParameter("@StudentId", SqlDbType.Int)
+    {
+        Value = studentId
+    };
+
+    Console.WriteLine($"Hämtar information för StudentId: {studentId}");
+
+    // Anropa metoden ExecuteQuery som kör frågan och visar resultaten
+    try
+    {
+        using (SqlConnection connection = new SqlConnection(_connectionString))
+        {
+            connection.Open();
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.Add(studentIdParam);
+
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    if (reader.HasRows)
+                    {
+                        while (reader.Read())
+                        {
+                            string elev = reader.GetString(reader.GetOrdinal("Elev"));
+                            int age = reader.GetInt32(reader.GetOrdinal("Ålder"));
+                            string ssn = reader.GetString(reader.GetOrdinal("Personnummer"));
+                            string className = reader.GetString(reader.GetOrdinal("Klass"));
+
+                            Console.WriteLine($"Elev: {elev}");
+                            Console.WriteLine($"Ålder: {age}");
+                            Console.WriteLine($"Personnummer: {ssn}");
+                            Console.WriteLine($"Klass: {className}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Ingen elev hittades med det angivna ID:t.");
+                    }
+                }
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Ett fel inträffade vid hämtning av information: " + ex.Message);
+    }
+
+    Console.WriteLine("\nTryck på valfri tangent för att fortsätta...");
+    Console.ReadKey();
+}
+
+public static void AddGradeToStudent()
+{
+    try
+    {
+        using (SqlConnection connection = new SqlConnection(_connectionString))
+        {
+            connection.Open();
+            using (SqlTransaction transaction = connection.BeginTransaction())
+            {
+                try
+                {
+                    List<(int StudentId, string FirstName, string LastName, string ClassName)>
+                        students = ListStudents();
+                    Console.WriteLine("Vilken elev vill du sätta betyg på?");
+                    foreach (var student in students)
+                    {
+                        Console.WriteLine(
+                            $"{student.StudentId}: {student.FirstName} {student.LastName} årskurs ({student.ClassName})");
+                    }
+
+                    Console.WriteLine("Ange elevens ID för att sätta betyg:");
+                    if (!int.TryParse(Console.ReadLine(), out int studentId) ||
+                        !students.Any(s => s.StudentId == studentId))
+                    {
+                        Console.WriteLine("Ogiltigt val. Vänligen ange ett giltigt elev-ID.");
+                        return;
+                    }
+
+                    // get all courses
+                    List<(int CourseId, string CourseName)> courses = ListCourses();
+                    Console.WriteLine("Vilket ämne vill du sätta betyg på?");
+                    foreach (var course in courses)
+                    {
+                        Console.WriteLine($"{course.CourseId}: {course.CourseName}");
+                    }
+
+                    Console.WriteLine("Ange ämnes-ID för att sätta betyg:");
+                    if (!int.TryParse(Console.ReadLine(), out int courseId) ||
+                        !courses.Any(c => c.CourseId == courseId))
+                    {
+                        Console.WriteLine("Ogiltigt val. Vänligen ange ett giltigt ämnes-ID.");
+                        return;
+                    }
+
+                    Console.WriteLine("Ange betyg (A-F):");
+                    string grade = Console.ReadLine().ToUpper();
+                    if (string.IsNullOrWhiteSpace(grade) || grade.Length > 1 || !char.IsLetter(grade[0]) ||
+                        grade[0] < 'A' || grade[0] > 'F')
+                    {
+                        Console.WriteLine("Ogiltigt betyg. Vänligen ange ett betyg mellan A-F.");
+                        return;
+                    }
+
+                    int employeeId = LoggedInTeacher(); // Get the logged in teacher
+                    
+                    string query = @"
+                                INSERT INTO Grades (StudentId, CourseId, Grade, GradeSetDate, EmployeeId)
+                                    VALUES (@StudentId, @CourseId, @Grade, @GradeSetDate, @EmployeeId);";
+
+                    using (SqlCommand command = new SqlCommand(query, connection, transaction))
+                    {
+                        command.Parameters.Add(new SqlParameter("@StudentId", SqlDbType.Int) { Value = studentId });
+                        command.Parameters.Add(new SqlParameter("@CourseId", SqlDbType.Int) { Value = courseId });
+                        command.Parameters.Add(new SqlParameter("@Grade", SqlDbType.Char) { Value = grade });
+                        command.Parameters.Add(new SqlParameter("@GradeSetDate", SqlDbType.Date)
+                            { Value = DateOnly.FromDateTime(DateTime.Now) });
+                        command.Parameters.Add(new SqlParameter("@EmployeeId", SqlDbType.Int) { Value = employeeId });
+                        command.ExecuteNonQuery();
+                    }
+
+                    transaction.Commit(); // Commit the transaction
+                    Console.WriteLine("Betyget har satts.");
+                    Console.WriteLine("Tryck på valfri tangent för att fortsätta...");
+                    Console.ReadKey();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+        }
+
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine(e);
+        throw;
+    }
+}
+
 public static string GetInput(string prompt)
 {
     Console.WriteLine(prompt);
@@ -224,6 +379,70 @@ public static DateOnly GetDateInput(string prompt)
         Console.WriteLine("Ogiltigt datum. Vänligen ange ett giltigt datum.");
     }
     return dateInput;
+}
+
+public static int LoggedInTeacher()
+{
+    try
+    {
+        List<(int EmployeeId, string FirstName, string LastName)> teachers = ListTeachers(); // Hämta alla lärare
+
+        if (teachers.Count == 0)
+        {
+            Console.WriteLine("Det finns inga lärare registrerade i systemet.");
+            return -1; // Returnera -1 för att indikera att inget val gjordes
+        }
+
+        Console.WriteLine("Välj en lärare som ska sätta betyget:");
+        foreach (var teacher in teachers)
+        {
+            Console.WriteLine($"{teacher.EmployeeId}: {teacher.FirstName} {teacher.LastName}");
+        }
+
+        Console.WriteLine("Ange lärarens ID:");
+        if (!int.TryParse(Console.ReadLine(), out int teacherId) || !teachers.Any(t => t.EmployeeId == teacherId))
+        {
+            Console.WriteLine("❌ Ogiltigt val. Försök igen.");
+            return LoggedInTeacher(); // Fråga igen vid felaktigt val
+        }
+
+        return teacherId; // Returnera det valda lärar-ID:t
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Ett fel uppstod: {ex.Message}");
+        return -1; // Indikera fel genom att returnera -1
+    }
+}
+public static List<(int EmployeeId, string FirstName, string LastName)> ListTeachers()
+{
+    List<(int, string, string)> teachers = new List<(int, string, string)>();
+
+    try
+    {
+        string query = "SELECT EmployeeId, FirstName, LastName FROM Employees WHERE ProfessionId = (SELECT ProfessionId FROM Professions WHERE ProfessionName = 'Teacher');";
+
+        using (SqlConnection connection = new SqlConnection(_connectionString))
+        {
+            connection.Open();
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        teachers.Add((reader.GetInt32(0), reader.GetString(1), reader.GetString(2)));
+                    }
+                }
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Ett fel uppstod vid hämtning av lärare: {ex.Message}");
+    }
+
+    return teachers; // Returnera även om listan är tom
 }
 
 public static int GetSelectionFromList(List<(int Id, string ProfessionName)> list, string prompt)
@@ -279,6 +498,108 @@ public static List<(int StudentId, string FirstName, string LastName, string Cla
         }
     }
     return students;
+}
+
+public static List<(int Id, string DepartmentName)> ListDepartments()
+{
+    List<(int Id, string DepartmentName)> departments = new List<(int, string)>();
+
+    // SQL-fråga för att hämta alla avdelningar
+    string query = "SELECT DepartmentId, DepartmentName FROM Departments";
+
+    try
+    {
+        // Anslut till databasen och kör SQL-frågan
+        using (SqlConnection connection = new SqlConnection(_connectionString))
+        {
+            connection.Open();
+            SqlCommand command = new SqlCommand(query, connection);
+            SqlDataReader reader = command.ExecuteReader();
+
+            // Läs alla avdelningar från databasen
+            while (reader.Read())
+            {
+                int departmentId = reader.GetInt32(0); // Första kolumnen är DepartmentId
+                string departmentName = reader.GetString(1); // Andra kolumnen är DepartmentName
+                departments.Add((departmentId, departmentName));
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        // Hantera eventuella fel
+        Console.WriteLine($"Ett fel uppstod vid hämtning av avdelningar: {ex.Message}");
+    }
+
+    return departments;
+}
+
+public static List<(int Id, string ProfessionName)> ListProfessions()
+{
+    List<(int Id, string ProfessionName)> professions = new List<(int, string)>();
+
+    string query = "SELECT ProfessionId, ProfessionName FROM Professions";
+
+    using (SqlConnection connection = new SqlConnection(_connectionString))
+    {
+        connection.Open();
+        using (SqlCommand command = new SqlCommand(query, connection))
+        {
+            try
+            {
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        int professionId = reader.GetInt32(0);
+                        string professionName = reader.GetString(1);
+
+                        professions.Add((professionId, professionName));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Fel vid hämtning av yrken: {ex.Message}");
+            }
+        }
+    }
+
+    return professions;
+}
+
+public static List<(int CourseId, string CourseName)> ListCourses()
+{
+    List<(int CourseId, string CourseName)> courses = new List<(int, string)>();
+
+    string query = "SELECT CourseId, CourseName FROM Courses";
+
+    using (SqlConnection connection = new SqlConnection(_connectionString))
+    {
+        connection.Open();
+        using (SqlCommand command = new SqlCommand(query, connection))
+        {
+            try
+            {
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        int courseId = reader.GetInt32(0);
+                        string courseName = reader.GetString(1);
+
+                        courses.Add((courseId, courseName));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Fel vid hämtning av kurser: {ex.Message}");
+            }
+        }
+    }
+
+    return courses;
 }
 
 public static void ExecuteQuery(string query, int padding, params SqlParameter[] parameters)

@@ -11,7 +11,7 @@ public class Interface
         {
             Console.Clear();
             Console.WriteLine("Välkommen till skolapplikationen!\nVar god välj ett alternativ:");
-            Console.WriteLine("1. Visa antal lärare och avdelningar");
+            Console.WriteLine("1. Visa alla avdelningar och antal anställda");
             Console.WriteLine("2. Visa information om alla elever");
             Console.WriteLine("3. Visa aktiva kurser");
             Console.WriteLine("4. Visa översikt över anställda");
@@ -19,11 +19,16 @@ public class Interface
             Console.WriteLine("6. Visa betyg för en elev");
             Console.WriteLine("7. Visa lönekostnader per månad och avdelning");
             Console.WriteLine("8. Visa genomsnittlig lön per avdelning");
-            Console.WriteLine("9. Avsluta programmet");
+            Console.WriteLine("9. Stored procedure: Elev information");
+            Console.WriteLine("10. Sätt betyg på en elev");
+            Console.WriteLine("11. Avsluta programmet");
 
             var choice = Console.ReadLine();
             switch (choice)
             {
+                case "1":
+                    EmployeeMethods.GetEmployeeCountByDepartment();
+                    break;
                 case "2":
                     StudentMethods.GetAllStudents();         
                     break;
@@ -46,6 +51,12 @@ public class Interface
                     AdoCommands.GetAverageSalaryPerDepartment();
                     break;
                 case "9":
+                    AdoCommands.GetStudentInfoById();
+                    break;
+                case "10":
+                    AdoCommands.AddGradeToStudent();
+                    break;
+                case "11":
                     Console.WriteLine("Avslutar programmet.");
                     Environment.Exit(0);
                     break;
