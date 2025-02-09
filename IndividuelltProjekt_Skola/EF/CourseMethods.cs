@@ -21,7 +21,7 @@ public class CourseMethods
                 }
 
                 Console.WriteLine();
-                Console.WriteLine("Tryck valfri tangent för att fortsätta...");
+                Console.WriteLine("Tryck valfri tangent för att återgå till huvudmenyn.");
                 Console.ReadKey();
             }
         }

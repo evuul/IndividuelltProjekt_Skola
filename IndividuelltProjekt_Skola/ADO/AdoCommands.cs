@@ -23,7 +23,7 @@ public class AdoCommands
 
         Console.WriteLine("Löner per avdelning:");
         ExecuteQuery(query, 30);
-        Console.WriteLine("Tryck på valfri tangent för att fortsätta...");
+        Console.WriteLine("Tryck på valfri tangent för att återgå till huvudmenyn.");
         Console.ReadKey();
     }
 
@@ -40,7 +40,7 @@ public class AdoCommands
 
         Console.WriteLine("Medellön per avdelning:");
         ExecuteQuery(query, 30);
-        Console.WriteLine("Tryck på valfri tangent för att fortsätta...");
+        Console.WriteLine("Tryck på valfri tangent för att återgå till huvudmenyn.");
         Console.ReadKey();
     }
 
@@ -56,37 +56,37 @@ public class AdoCommands
 
         Console.WriteLine("Översikt av personal:");
         ExecuteQuery(query, 27);
-        Console.WriteLine("Tryck på valfri tangent för att fortsätta...");
+        Console.WriteLine("Tryck på valfri tangent för att återgå till huvudmenyn.");
         Console.ReadKey();
     }
 
-public static void AddEmployee()
+    public static void AddEmployee()
 {
     try
     {
-        // Använd hjälpmetoder för att samla in information från användaren
+        // use the GetInput method to get the first name and last name
         string firstName = GetInput("Ange förnamn på den anställde:");
         string lastName = GetInput("Ange efternamn på den anställde:");
 
-        // Hämta och välj ett yrke
+        // add a profession
         List<(int Id, string ProfessionName)> professions = ListProfessions();
         int professionId = GetSelectionFromList(professions, "Vilken anställning kommer den anställde ha på skolan?");
 
-        // Be om lön
+        // ask for salary
         int salary = GetIntInput("Ange den anställdes lön (minimum 17 000kr):", 17000);
 
-        // Be om anställningsdatum
+        // ask for employment date
         DateOnly employmentDate = GetDateInput("Ange den anställdes anställningsdatum (YYYY-MM-DD):");
 
-        // Lägg till en prompt för att välja avdelning
+        // add a department
         List<(int Id, string DepartmentName)> departments = ListDepartments();
         int departmentId = GetSelectionFromList(departments, "Vilken avdelning tillhör den anställde?");
 
-        // Bygg SQL-frågan för att lägga till den anställde
+        // SQL-Query to insert a new employee
         string query = @"INSERT INTO Employees (FirstName, LastName, ProfessionId, Salary, HireDate, DepartmentId)
                  VALUES (@FirstName, @LastName, @ProfessionId, @Salary, @HireDate, @DepartmentId)";
         // Skapa parametrar för SQL-frågan
-        SqlParameter[] parameters = new SqlParameter[]
+        SqlParameter[] parameters = new SqlParameter[] // create an array of parameters
         {
             new SqlParameter("@FirstName", SqlDbType.NVarChar) { Value = firstName },
             new SqlParameter("@LastName", SqlDbType.NVarChar) { Value = lastName },
@@ -96,21 +96,21 @@ public static void AddEmployee()
             new SqlParameter("@DepartmentId", SqlDbType.Int) { Value = departmentId }
         };
 
-        // Kör frågan för att lägga till den anställde
+        // execute the query
         ExecuteQuery(query, 20, parameters);
 
         Console.WriteLine("Den anställde har lagts till i systemet.");
-        Console.WriteLine("Tryck på valfri tangent för att fortsätta...");
+        Console.WriteLine("Tryck på valfri tangent för att återgå till huvudmenyn.");
         Console.ReadKey();
     }
     catch (Exception ex)
     {
-        // Hantera fel vid exekvering
+        // if a problem occurs, show the error message
         Console.WriteLine($"Ett fel uppstod: {ex.Message}");
     }
 }
 
-public static void GetGradesFromSpecificStudent()
+    public static void GetGradesFromSpecificStudent()
 {
     List<(int StudentId, string FirstName, string LastName, string ClassName)> students = ListStudents();  // Hämta alla elever
     Console.WriteLine("Vilken elevs betyg vill du se?");
@@ -158,11 +158,11 @@ public static void GetGradesFromSpecificStudent()
     };
     Console.WriteLine($"Hämtar betyg för StudentId: {studentId}");
     ExecuteQuery(query, 20, studentIdParam);
-    Console.WriteLine("\nTryck på valfri tangent för att fortsätta...");
+    Console.WriteLine("\nTryck på valfri tangent för att återgå till huvudmenyn.");
     Console.ReadKey();
 }
 
-public static void GetStudentInfoById()
+    public static void GetStudentInfoById()
 {
     // Hämta lista på alla elever
     List<(int StudentId, string FirstName, string LastName, string ClassName)> students = ListStudents();
@@ -249,11 +249,11 @@ public static void GetStudentInfoById()
         Console.WriteLine("Ett fel inträffade vid hämtning av information: " + ex.Message);
     }
 
-    Console.WriteLine("\nTryck på valfri tangent för att fortsätta...");
+    Console.WriteLine("\nTryck på valfri tangent för att återgå till huvudmenyn.");
     Console.ReadKey();
 }
 
-public static void AddGradeToStudent()
+    public static void AddGradeToStudent()
 {
     try
     {
@@ -275,7 +275,7 @@ public static void AddGradeToStudent()
 
                     Console.WriteLine("Ange elevens ID för att sätta betyg:");
                     if (!int.TryParse(Console.ReadLine(), out int studentId) ||
-                        !students.Any(s => s.StudentId == studentId))
+                        !students.Any(s => s.StudentId == studentId)) // Check if the studentId exists in the list
                     {
                         Console.WriteLine("Ogiltigt val. Vänligen ange ett giltigt elev-ID.");
                         return;
@@ -299,14 +299,14 @@ public static void AddGradeToStudent()
 
                     Console.WriteLine("Ange betyg (A-F):");
                     string grade = Console.ReadLine().ToUpper();
-                    if (string.IsNullOrWhiteSpace(grade) || grade.Length > 1 || !char.IsLetter(grade[0]) ||
+                    if (string.IsNullOrWhiteSpace(grade) || grade.Length > 1 || !char.IsLetter(grade[0]) || // Check if the grade is a letter
                         grade[0] < 'A' || grade[0] > 'F')
                     {
                         Console.WriteLine("Ogiltigt betyg. Vänligen ange ett betyg mellan A-F.");
                         return;
                     }
 
-                    int employeeId = LoggedInTeacher(); // Get the logged in teacher
+                    int employeeId = LoggedInTeacher(); // Let user choose a teacher
                     
                     string query = @"
                                 INSERT INTO Grades (StudentId, CourseId, Grade, GradeSetDate, EmployeeId)
@@ -325,13 +325,13 @@ public static void AddGradeToStudent()
 
                     transaction.Commit(); // Commit the transaction
                     Console.WriteLine("Betyget har satts.");
-                    Console.WriteLine("Tryck på valfri tangent för att fortsätta...");
+                    Console.WriteLine("Tryck på valfri tangent för att återgå till huvudmenyn.");
                     Console.ReadKey();
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
-                    transaction.Rollback();
+                    transaction.Rollback(); // Rollback the transaction if an error occurs
                     throw;
                 }
             }
@@ -345,7 +345,7 @@ public static void AddGradeToStudent()
     }
 }
 
-public static string GetInput(string prompt)
+    public static string GetInput(string prompt)
 {
     Console.WriteLine(prompt);
     string input = Console.ReadLine();
@@ -353,13 +353,13 @@ public static string GetInput(string prompt)
     if (string.IsNullOrWhiteSpace(input))
     {
         Console.WriteLine("Input får inte vara tomt. Försök igen.");
-        return GetInput(prompt);  // Återkalla metoden tills vi får ett giltigt svar
+        return GetInput(prompt);  // Call the method again if the input is empty
     }
 
     return input;
 }
 
-public static int GetIntInput(string prompt, int minValue)
+    public static int GetIntInput(string prompt, int minValue)
 {
     Console.WriteLine(prompt);
     int input;
@@ -370,7 +370,7 @@ public static int GetIntInput(string prompt, int minValue)
     return input;
 }
 
-public static DateOnly GetDateInput(string prompt)
+    public static DateOnly GetDateInput(string prompt)
 {
     Console.WriteLine(prompt);
     DateOnly dateInput;
@@ -381,7 +381,7 @@ public static DateOnly GetDateInput(string prompt)
     return dateInput;
 }
 
-public static int LoggedInTeacher()
+    public static int LoggedInTeacher()
 {
     try
     {
@@ -414,7 +414,7 @@ public static int LoggedInTeacher()
         return -1; // Indikera fel genom att returnera -1
     }
 }
-public static List<(int EmployeeId, string FirstName, string LastName)> ListTeachers()
+    public static List<(int EmployeeId, string FirstName, string LastName)> ListTeachers()
 {
     List<(int, string, string)> teachers = new List<(int, string, string)>();
 
@@ -445,7 +445,7 @@ public static List<(int EmployeeId, string FirstName, string LastName)> ListTeac
     return teachers; // Returnera även om listan är tom
 }
 
-public static int GetSelectionFromList(List<(int Id, string ProfessionName)> list, string prompt)
+    public static int GetSelectionFromList(List<(int Id, string ProfessionName)> list, string prompt)
 {
     Console.WriteLine("\n" + prompt);
     foreach (var item in list)
@@ -462,7 +462,7 @@ public static int GetSelectionFromList(List<(int Id, string ProfessionName)> lis
     return selection;
 }
 
-public static List<(int StudentId, string FirstName, string LastName, string ClassName)> ListStudents()
+    public static List<(int StudentId, string FirstName, string LastName, string ClassName)> ListStudents()
 {
     List<(int StudentId, string FirstName, string LastName, string ClassName)> students = new List<(int, string, string, string)>();
 
@@ -500,7 +500,7 @@ public static List<(int StudentId, string FirstName, string LastName, string Cla
     return students;
 }
 
-public static List<(int Id, string DepartmentName)> ListDepartments()
+    public static List<(int Id, string DepartmentName)> ListDepartments()
 {
     List<(int Id, string DepartmentName)> departments = new List<(int, string)>();
 
@@ -534,7 +534,7 @@ public static List<(int Id, string DepartmentName)> ListDepartments()
     return departments;
 }
 
-public static List<(int Id, string ProfessionName)> ListProfessions()
+    public static List<(int Id, string ProfessionName)> ListProfessions()
 {
     List<(int Id, string ProfessionName)> professions = new List<(int, string)>();
 
@@ -568,7 +568,7 @@ public static List<(int Id, string ProfessionName)> ListProfessions()
     return professions;
 }
 
-public static List<(int CourseId, string CourseName)> ListCourses()
+    public static List<(int CourseId, string CourseName)> ListCourses()
 {
     List<(int CourseId, string CourseName)> courses = new List<(int, string)>();
 
@@ -602,7 +602,7 @@ public static List<(int CourseId, string CourseName)> ListCourses()
     return courses;
 }
 
-public static void ExecuteQuery(string query, int padding, params SqlParameter[] parameters)
+    public static void ExecuteQuery(string query, int padding, params SqlParameter[] parameters)
 {
     using (SqlConnection connection = new SqlConnection(_connectionString))
     {
