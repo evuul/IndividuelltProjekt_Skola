@@ -163,7 +163,7 @@ public class AdoCommands
     Console.ReadKey();
 }
 
-public static void GetStudentInfoById()
+    public static void GetStudentInfoById()
 {
     // get a list of students
     List<(int StudentId, string FirstName, string LastName, string ClassName)> students = ListStudents();
@@ -233,7 +233,7 @@ public static void GetStudentInfoById()
     Console.ReadKey();
 }
 
-    public static void AddGradeToStudent()
+public static void AddGradeToStudent()
 {
     try
     {
@@ -244,24 +244,25 @@ public static void GetStudentInfoById()
             {
                 try
                 {
-                    List<(int StudentId, string FirstName, string LastName, string ClassName)>
-                        students = ListStudents();
+                    List<(int StudentId, string FirstName, string LastName, string ClassName)> students = ListStudents();
                     Console.WriteLine("Vilken elev vill du sätta betyg på?");
                     foreach (var student in students)
                     {
-                        Console.WriteLine(
-                            $"{student.StudentId}: {student.FirstName} {student.LastName} årskurs ({student.ClassName})");
+                        Console.WriteLine($"{student.StudentId}: {student.FirstName} {student.LastName} årskurs ({student.ClassName})");
                     }
 
-                    Console.WriteLine("Ange elevens ID för att sätta betyg:");
-                    if (!int.TryParse(Console.ReadLine(), out int studentId) ||
-                        !students.Any(s => s.StudentId == studentId)) // Check if the studentId exists in the list
+                    int studentId;
+                    while (true)
                     {
-                        Console.WriteLine("Ogiltigt val. Vänligen ange ett giltigt elev-ID.");
-                        return;
+                        Console.WriteLine("Ange elevens ID för att sätta betyg:");
+                        if (int.TryParse(Console.ReadLine(), out studentId) && students.Any(s => s.StudentId == studentId))
+                        {
+                            break; // Break out of loop when a valid student ID is entered
+                        }
+                            Console.WriteLine("Ogiltigt val. Vänligen ange ett giltigt elev-ID.");
                     }
 
-                    // get all courses
+                    // get a list of courses
                     List<(int CourseId, string CourseName)> courses = ListCourses();
                     Console.WriteLine("Vilket ämne vill du sätta betyg på?");
                     foreach (var course in courses)
@@ -269,24 +270,34 @@ public static void GetStudentInfoById()
                         Console.WriteLine($"{course.CourseId}: {course.CourseName}");
                     }
 
-                    Console.WriteLine("Ange ämnes-ID för att sätta betyg:");
-                    if (!int.TryParse(Console.ReadLine(), out int courseId) ||
-                        !courses.Any(c => c.CourseId == courseId))
+                    int courseId;
+                    while (true)
                     {
-                        Console.WriteLine("Ogiltigt val. Vänligen ange ett giltigt ämnes-ID.");
-                        return;
+                        Console.WriteLine("Ange ämnes-ID för att sätta betyg:");
+                        if (int.TryParse(Console.ReadLine(), out courseId) && courses.Any(c => c.CourseId == courseId))
+                        {
+                            break;
+                            
+                        }
+                            Console.WriteLine("Ogiltigt val. Vänligen ange ett giltigt ämnes-ID.");
                     }
 
-                    Console.WriteLine("Ange betyg (A-F):");
-                    string grade = Console.ReadLine().ToUpper();
-                    if (string.IsNullOrWhiteSpace(grade) || grade.Length > 1 || !char.IsLetter(grade[0]) || // Check if the grade is a letter
-                        grade[0] < 'A' || grade[0] > 'F')
+                    string grade;
+                    while (true)
                     {
-                        Console.WriteLine("Ogiltigt betyg. Vänligen ange ett betyg mellan A-F.");
-                        return;
+                        Console.WriteLine("Ange betyg (A-F):");
+                        grade = Console.ReadLine().ToUpper();
+                        if (string.IsNullOrWhiteSpace(grade) || grade.Length > 1 || !char.IsLetter(grade[0]) || grade[0] < 'A' || grade[0] > 'F')
+                        {
+                            Console.WriteLine("Ogiltigt betyg. Vänligen ange ett betyg mellan A-F.");
+                        }
+                        else
+                        {
+                            break;  // Break out of loop when a valid grade is entered
+                        }
                     }
 
-                    int employeeId = LoggedInTeacher(); // Let user choose a teacher
+                    int employeeId = LoggedInTeacher();
                     
                     string query = @"
                                 INSERT INTO Grades (StudentId, CourseId, Grade, GradeSetDate, EmployeeId)
@@ -303,7 +314,7 @@ public static void GetStudentInfoById()
                         command.ExecuteNonQuery();
                     }
 
-                    transaction.Commit(); // Commit the transaction
+                    transaction.Commit(); // Commit transaktionen
                     Console.WriteLine("Betyget har satts.");
                     Console.WriteLine("Tryck på valfri tangent för att återgå till huvudmenyn.");
                     Console.ReadKey();
@@ -311,12 +322,11 @@ public static void GetStudentInfoById()
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
-                    transaction.Rollback(); // Rollback the transaction if an error occurs
+                    transaction.Rollback();
                     throw;
                 }
             }
         }
-
     }
     catch (Exception e)
     {
