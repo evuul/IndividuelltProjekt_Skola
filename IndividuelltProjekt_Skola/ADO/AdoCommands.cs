@@ -1,4 +1,5 @@
 using System.Data;
+using System.Threading.Channels;
 using Microsoft.Data.SqlClient;
 
 namespace IndividuelltProjekt_Skola.ADO;
@@ -162,83 +163,62 @@ public class AdoCommands
     Console.ReadKey();
 }
 
-    public static void GetStudentInfoById()
+public static void GetStudentInfoById()
 {
-    // Hämta lista på alla elever
+    // get a list of students
     List<(int StudentId, string FirstName, string LastName, string ClassName)> students = ListStudents();
     Console.WriteLine("Vilken elevs information vill du se?");
 
-    // Skriv ut alla elever för val
+    // write out the students
     foreach (var student in students)
     {
         Console.WriteLine($"{student.StudentId}: {student.FirstName} {student.LastName} årskurs ({student.ClassName})");
     }
 
-    Console.WriteLine("Ange elevens ID för att se information:");
-
-    // Hämta och validera input
-    if (!int.TryParse(Console.ReadLine(), out int studentId))
+    int studentId = 0;
+    while (true)
     {
-        Console.WriteLine("Ogiltigt val. Vänligen ange ett heltal.");
-        return;
+        Console.WriteLine("Ange elevens ID för att se information:");
+
+        // validate input
+        if (int.TryParse(Console.ReadLine(), out studentId) && students.Any(s => s.StudentId == studentId))
+        {
+            break; 
+        }
+            Console.WriteLine("Ogiltigt val. Vänligen ange ett korrekt elev-ID.");
     }
 
-    // Kontrollera om elev-ID:t finns i listan
-    if (!students.Any(s => s.StudentId == studentId))
-    {
-        Console.WriteLine("Ogiltigt elev-ID. Försök igen.");
-        return;
-    }
-
-    // SQL-fråga för att hämta elevinformation
-    string query = @"
-    SELECT 
-        s.FirstName + ' ' + s.LastName AS Elev,
-        s.Age AS Ålder,
-        s.SocialSecurityNumber AS Personnummer,
-        c.ClassName AS Klass
-    FROM Students s
-    INNER JOIN Classes c ON s.ClassId = c.ClassId
-    WHERE s.StudentId = @StudentId;";
-
-    // Skapa parameter för SQL-frågan
-    SqlParameter studentIdParam = new SqlParameter("@StudentId", SqlDbType.Int)
-    {
-        Value = studentId
-    };
-
-    Console.WriteLine($"Hämtar information för StudentId: {studentId}");
-
-    // Anropa metoden ExecuteQuery som kör frågan och visar resultaten
     try
     {
         using (SqlConnection connection = new SqlConnection(_connectionString))
         {
             connection.Open();
-            using (SqlCommand command = new SqlCommand(query, connection))
+            
+            using (SqlCommand command = new SqlCommand("GetStudentInfo", connection))
             {
-                command.Parameters.Add(studentIdParam);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@StudentId", studentId);
 
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
-                    if (reader.HasRows)
-                    {
-                        while (reader.Read())
-                        {
-                            string elev = reader.GetString(reader.GetOrdinal("Elev"));
-                            int age = reader.GetInt32(reader.GetOrdinal("Ålder"));
-                            string ssn = reader.GetString(reader.GetOrdinal("Personnummer"));
-                            string className = reader.GetString(reader.GetOrdinal("Klass"));
-
-                            Console.WriteLine($"Elev: {elev}");
-                            Console.WriteLine($"Ålder: {age}");
-                            Console.WriteLine($"Personnummer: {ssn}");
-                            Console.WriteLine($"Klass: {className}");
-                        }
-                    }
-                    else
+                    if (!reader.HasRows)
                     {
                         Console.WriteLine("Ingen elev hittades med det angivna ID:t.");
+                        return;
+                    }
+
+                    while (reader.Read())
+                    {
+                        string elev = reader.GetString(reader.GetOrdinal("Elev"));
+                        int age = reader.GetInt32(reader.GetOrdinal("Ålder"));
+                        string ssn = reader.GetString(reader.GetOrdinal("Personnummer"));
+                        string className = reader.GetString(reader.GetOrdinal("Klass"));
+
+                        Console.WriteLine("\n**Elevinformation**");
+                        Console.WriteLine($"Namn: {elev}");
+                        Console.WriteLine($"Ålder: {age}");
+                        Console.WriteLine($"Personnummer: {ssn}");
+                        Console.WriteLine($"Klass: {className}");
                     }
                 }
             }
@@ -246,9 +226,9 @@ public class AdoCommands
     }
     catch (Exception ex)
     {
-        Console.WriteLine("Ett fel inträffade vid hämtning av information: " + ex.Message);
+        Console.WriteLine($"Ett oväntat fel inträffade: {ex.Message}");
     }
-
+    
     Console.WriteLine("\nTryck på valfri tangent för att återgå till huvudmenyn.");
     Console.ReadKey();
 }
